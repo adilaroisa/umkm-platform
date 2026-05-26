@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Cart;
 use App\Models\Order;
+use App\Models\OrderDetail;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Midtrans\Config;
@@ -11,7 +13,6 @@ use Midtrans\Snap;
 
 class CheckoutController extends Controller
 {
-    // 1. Memproses item dari keranjang menuju database & memanggil pop-up Midtrans
     public function process(Request $request)
     {
         $selectedCartIds = $request->input('cart_ids');
@@ -53,10 +54,19 @@ class CheckoutController extends Controller
             'status_pembayaran' => 'Pending',
         ]);
 
+        // TAHAP BARU: Simpan detail barang ke memori pesanan sebelum keranjang dihapus
+        foreach ($carts as $cart) {
+            OrderDetail::create([
+                'order_id' => $order->id,
+                'product_id' => $cart->product_id,
+                'jumlah' => $cart->jumlah
+            ]);
+        }
+
         Config::$serverKey = env('MIDTRANS_SERVER_KEY');
-        Config::$isProduction = env('MIDTRANS_IS_PRODUCTION');
-        Config::$isSanitized = env('MIDTRANS_IS_SANITIZED');
-        Config::$is3ds = env('MIDTRANS_IS_3DS');
+        Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
+        Config::$isSanitized = env('MIDTRANS_IS_SANITIZED', true);
+        Config::$is3ds = env('MIDTRANS_IS_3DS', true);
 
         $params = [
             'transaction_details' => [
@@ -68,7 +78,6 @@ class CheckoutController extends Controller
                 'first_name' => Auth::user()->name,
                 'email' => Auth::user()->email,
             ],
-            // TAMBAHAN: Atur waktu kedaluwarsa pembayaran (15 menit)
             'custom_expiry' => [
                 'expiry_duration' => 15,
                 'unit' => 'minute'
@@ -78,7 +87,6 @@ class CheckoutController extends Controller
         try {
             $snapToken = Snap::getSnapToken($params);
             
-            // Bersihkan item yang berhasil diproses dari keranjang belanja
             Cart::where('user_id', Auth::id())->whereIn('id', $selectedCartIds)->delete();
 
             return view('checkout_payment', compact('order', 'snapToken'));
@@ -87,7 +95,6 @@ class CheckoutController extends Controller
         }
     }
 
-    // 2. Memproses ulang pembayaran pesanan yang masih berstatus "Pending" di riwayat
     public function repay($id)
     {
         $order = Order::findOrFail($id);
@@ -97,9 +104,9 @@ class CheckoutController extends Controller
         }
 
         Config::$serverKey = env('MIDTRANS_SERVER_KEY');
-        Config::$isProduction = env('MIDTRANS_IS_PRODUCTION');
-        Config::$isSanitized = env('MIDTRANS_IS_SANITIZED');
-        Config::$is3ds = env('MIDTRANS_IS_3DS');
+        Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
+        Config::$isSanitized = env('MIDTRANS_IS_SANITIZED', true);
+        Config::$is3ds = env('MIDTRANS_IS_3DS', true);
 
         $params = [
             'transaction_details' => [
@@ -110,7 +117,6 @@ class CheckoutController extends Controller
                 'first_name' => Auth::user()->name,
                 'email' => Auth::user()->email,
             ],
-            // TAMBAHAN: Atur waktu kedaluwarsa untuk pembayaran ulang (15 menit)
             'custom_expiry' => [
                 'expiry_duration' => 15,
                 'unit' => 'minute'
@@ -125,26 +131,33 @@ class CheckoutController extends Controller
         }
     }
 
-    // 3. Menangkap laporan sukses/batal secara otomatis dari Server Midtrans (Webhook)
     public function webhook(Request $request)
     {
         $serverKey = env('MIDTRANS_SERVER_KEY');
-        
-        // Validasi keamanan (Signature Key) dari Midtrans
         $hashed = hash("sha512", $request->order_id . $request->status_code . $request->gross_amount . $serverKey);
 
         if ($hashed == $request->signature_key) {
-            
-            // Ambil nomor order asli (membuang tambahan waktu dari fitur repay)
             $asli_no_order = substr($request->order_id, 0, 14); 
             $order = Order::where('no_order', 'like', $asli_no_order . '%')->first();
 
-            // Ubah status pembayaran di database sesuai laporan Midtrans
             if ($order) {
                 if ($request->transaction_status == 'capture' || $request->transaction_status == 'settlement') {
-                    $order->update(['status_pembayaran' => 'Lunas']);
+                    
+                    // PENTING: Cegah perhitungan ganda jika Midtrans mengirim info lunas dua kali
+                    if ($order->status_pembayaran == 'Pending') {
+                        $order->update(['status_pembayaran' => 'Lunas']);
+                        
+                        // LOGIKA BARU: Cari daftar barang di pesanan ini, kurangi stok, dan tambah terjual!
+                        $details = OrderDetail::where('order_id', $order->id)->get();
+                        foreach ($details as $detail) {
+                            $produk = Product::find($detail->product_id);
+                            if ($produk) {
+                                $produk->decrement('stok', $detail->jumlah);
+                                $produk->increment('terjual', $detail->jumlah);
+                            }
+                        }
+                    }
                 } elseif ($request->transaction_status == 'cancel' || $request->transaction_status == 'deny' || $request->transaction_status == 'expire') {
-                    // Jika lewat 15 menit, Midtrans mengirim status 'expire', dan order otomatis jadi Batal
                     $order->update(['status_pembayaran' => 'Batal']);
                 }
             }

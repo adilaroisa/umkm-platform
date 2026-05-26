@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Auth;
+namespace App\Http\Controllers\Auth; // <-- Ini bagian yang sudah diperbaiki
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
@@ -28,13 +28,16 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        // Logika Pemisahan Akses berdasarkan Role
-        if ($request->user()->role === 'admin') {
-            return redirect()->intended('/admin/dashboard');
+        // Ambil data user yang baru saja login
+        $user = $request->user();
+
+        // Pengalihan mutlak berdasarkan role tanpa menggunakan intended()
+        if ($user->role && strtolower($user->role) === 'admin') {
+            return redirect('/admin/dashboard');
         }
 
-        // Jika yang login adalah customer, arahkan ke halaman toko (root)
-        return redirect()->intended('/');
+        // Jika bukan admin, maka diarahkan ke halaman toko utama
+        return redirect('/');
     }
 
     /**

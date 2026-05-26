@@ -63,9 +63,9 @@
 
     <div class="row">
         <div class="col-lg-8 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-white border-0">
-                    <h3 class="card-title font-weight-bold"><i class="fas fa-chart-line text-primary mr-2"></i> Penjualan Bulanan (Chart.js)</h3>
+            <div class="card shadow-sm h-100" style="border-radius: 12px;">
+                <div class="card-header bg-white border-0" style="border-radius: 12px 12px 0 0;">
+                    <h3 class="card-title font-weight-bold text-dark"><i class="fas fa-chart-line text-primary mr-2"></i> Penjualan Bulanan</h3>
                 </div>
                 <div class="card-body">
                     <div style="height: 250px;">
@@ -76,32 +76,20 @@
         </div>
 
         <div class="col-lg-4 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-white border-0">
-                    <h3 class="card-title font-weight-bold"><i class="fas fa-chart-bar text-primary mr-2"></i> Produk Terlaris</h3>
+            <div class="card shadow-sm h-100" style="border-radius: 12px;">
+                <div class="card-header bg-white border-0" style="border-radius: 12px 12px 0 0;">
+                    <h3 class="card-title font-weight-bold text-dark"><i class="fas fa-chart-bar text-primary mr-2"></i> Produk Terlaris</h3>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body p-0 text-dark">
                     <ul class="list-group list-group-flush">
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            Keripik Singkong Original
-                            <span class="badge badge-primary badge-pill">42 Terjual</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            Teh Herbal Jahe Merah
-                            <span class="badge badge-primary badge-pill">35 Terjual</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            Anyaman Bambu Motif
-                            <span class="badge badge-primary badge-pill">28 Terjual</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            Kopi Bubuk Arabica
-                            <span class="badge badge-primary badge-pill">19 Terjual</span>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            Sambal Roa Botolan
-                            <span class="badge badge-primary badge-pill">11 Terjual</span>
-                        </li>
+                        @forelse($produk_terlaris as $produk)
+                            <li class="list-group-item d-flex justify-content-between align-items-center font-weight-bold text-dark">
+                                {{ $produk->nama_produk }}
+                                <span class="badge badge-primary badge-pill py-1 px-2">{{ $produk->terjual }} Terjual</span>
+                            </li>
+                        @empty
+                            <li class="list-group-item text-center text-muted py-4">Belum ada data produk.</li>
+                        @endforelse
                     </ul>
                 </div>
             </div>
@@ -110,11 +98,11 @@
 
     <div class="row">
         <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-white border-0">
-                    <h3 class="card-title font-weight-bold">Pesanan Terbaru</h3>
+            <div class="card shadow-sm" style="border-radius: 12px;">
+                <div class="card-header bg-white border-0" style="border-radius: 12px 12px 0 0;">
+                    <h3 class="card-title font-weight-bold text-dark">Pesanan Terbaru</h3>
                 </div>
-                <div class="card-body table-responsive p-0">
+                <div class="card-body table-responsive p-0 text-dark">
                     <table class="table table-hover text-nowrap mb-0">
                         <thead class="bg-light">
                             <tr>
@@ -153,49 +141,73 @@
     </div>
 @stop
 
-@section('js')
-<script>
-    // Konfigurasi Chart.js dengan garis warna biru terang
-    var ctx = document.getElementById('salesChart').getContext('2d');
-    var salesChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags'],
-            datasets: [{
-                label: 'Penjualan',
-                data: [10, 20, 15, 30, 25, 40, 35, 50],
-                borderColor: '#007bff', // Biru primary yang cerah
-                backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                borderWidth: 3,
-                pointBackgroundColor: '#007bff',
-                pointRadius: 4,
-                fill: true,
-                lineTension: 0.3
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            legend: {
-                display: false
-            },
-            scales: {
-                xAxes: [{
-                    gridLines: {
-                        display: false
-                    }
-                }],
-                yAxes: [{
-                    gridLines: {
-                        color: '#eaeaea',
-                        zeroLineColor: '#eaeaea'
-                    },
-                    ticks: {
-                        beginAtZero: true
-                    }
-                }]
-            }
+@section('css')
+    <style>
+        .btn-logout {
+            background-color: #ef4444 !important;
+            color: #ffffff !important;
+            border-radius: 8px;
+            font-weight: 700;
+            padding: 6px 18px !important;
+            margin-top: 2px;
+            border: none;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.3);
         }
+        
+        .btn-logout:hover {
+            background-color: #dc2626 !important;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px rgba(220, 38, 38, 0.4);
+        }
+    </style>
+@stop
+
+@section('js')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    $(document).ready(function() {
+        // Tombol Logout
+        let logoutLink = $('a[href$="logout"]');
+        logoutLink.addClass('btn-logout');
+        logoutLink.html('<i class="fas fa-sign-out-alt mr-2"></i>Logout');
+
+        // Konfigurasi Chart.js Dinamis
+        var ctx = document.getElementById('salesChart').getContext('2d');
+        var salesChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'],
+                datasets: [{
+                    label: 'Total Penjualan (Rp)',
+                    data: {!! json_encode($chart_data) !!}, // INJEKSI DATA ASLI DATABASE
+                    borderColor: '#007bff', 
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#007bff',
+                    pointRadius: 4,
+                    fill: true,
+                    lineTension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                legend: { display: true },
+                scales: {
+                    xAxes: [{ gridLines: { display: false } }],
+                    yAxes: [{
+                        gridLines: { color: '#eaeaea', zeroLineColor: '#eaeaea' },
+                        ticks: { 
+                            beginAtZero: true,
+                            callback: function(value, index, values) {
+                                return 'Rp ' + value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                            }
+                        }
+                    }]
+                }
+            }
+        });
     });
 </script>
 @stop

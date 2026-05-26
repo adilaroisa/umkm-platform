@@ -15,8 +15,8 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// --- RUTE DASHBOARD ADMIN ---
-Route::get('/admin/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+// --- RUTE DASHBOARD ADMIN (Sudah Diperbaiki Namanya) ---
+Route::get('/admin/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
 
 // --- RUTE CRUD PRODUK ---
 Route::get('/admin/produk', [ProductController::class, 'index'])->name('produk.index');
@@ -38,8 +38,8 @@ Route::delete('/admin/pesanan/{id}', [OrderController::class, 'destroy'])->name(
 // --- RUTE LAPORAN TRANSAKSI ---
 Route::get('/admin/laporan', [ReportController::class, 'index'])->name('laporan.index');
 
-// Rute Logout Sapu Jagat
-Route::get('/logout', [AuthenticatedSessionController::class, 'destroy']);
+// Rute Logout
+Route::get('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
 // RUTE KERANJANG & PESANAN (Hanya untuk pelanggan yang sudah login)
 Route::middleware('auth')->group(function () {
@@ -54,7 +54,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/pesanan-saya/{id}/bayar', [CheckoutController::class, 'repay'])->name('checkout.repay');
 });
 
-// RUTE WEBHOOK MIDTRANS (Sangat Penting: Wajib di luar middleware auth)
+// RUTE WEBHOOK MIDTRANS
 Route::post('/midtrans/webhook', [CheckoutController::class, 'webhook']);
 
 require __DIR__.'/auth.php';
